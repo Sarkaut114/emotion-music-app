@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="id" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Emotion Music App</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 20px;
+            background: #1e1e1e;
+            color: white;
+            text-align: center;
+            margin-top: 80px;
+        }
+        .emotion-box {
+            font-size: 40px;
+            color: #00ff99;
+            margin-top: 30px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Emotion Detection</h1>
+
+    <img src="http://localhost:5000/video_feed">
+
+    <div class="emotion-box">
+        Emotion:
+        <span th:text="${emotion}"></span>
+    </div>
+
+    <script>
+        async function updateEmotion() {
+
+            try {
+
+                const response = await fetch('http://localhost:5000/emotion');
+
+                const data = await response.json();
+
+                document.getElementById('emotion').innerText = data.emotion;
+
+            }
+            catch(error) {
+
+                console.error(error);
+
+            }
+        }
+
+        // updateEmotion, 1000 = 1 detik
+        setInterval(updateEmotion, 2000);
+    </script>
+
+</body>
+</html>
