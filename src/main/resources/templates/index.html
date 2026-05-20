@@ -24,34 +24,34 @@
 
     <h1>Emotion Detection</h1>
 
+    <!-- Menampilkan video feed dari Flask -->
     <img src="http://localhost:5000/video_feed">
 
+    <!-- deteksi emosi real-time -->
     <div class="emotion-box">
         Emotion:
-        <span th:text="${emotion}"></span>
+        <span id="emotion">detecting...</span>
     </div>
 
     <script>
         async function updateEmotion() {
 
             try {
-
                 const response = await fetch('http://localhost:5000/emotion');
 
                 const data = await response.json();
 
                 document.getElementById('emotion').innerText = data.emotion;
-
             }
+
             catch(error) {
-
                 console.error(error);
-
             }
         }
 
-        // updateEmotion, 1000 = 1 detik
-        setInterval(updateEmotion, 2000);
+        // updateEmotion(ms), 1000 = 1 detik
+        setInterval(updateEmotion, 100);
+        updateEmotion();
     </script>
 
 </body>
