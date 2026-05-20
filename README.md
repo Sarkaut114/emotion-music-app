@@ -1,16 +1,43 @@
-### Directory Run Program
-(venv) PS :...\emotion-music\ai-service>
+# Install Dependency Python
 
+Buka terminal:
+
+```bash
+cd ai-service
+python -m venv venv
 venv\Scripts\activate
-
-### Pastikan sudah ada library "requirements.txt"
-pip list
-
 pip install -r requirements.txt
+cd ..
+```
 
-### Run Program
+---
+
+# Menjalankan Program
+
+## Jalankan AI Service
+
+Buka terminal pertama:
+
+```bash
+cd ai-service
+venv\Scripts\activate
 python app.py
+```
 
-MusicApplication.java
+## Jalankan Spring Boot
 
-Buka browser localhost:8080
+Buka terminal kedua:
+
+```bash
+mvnw.cmd spring-boot:run
+```
+
+---
+
+# Buka Aplikasi
+
+Buka browser:
+
+```text
+http://localhost:8080
+```
