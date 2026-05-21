@@ -4,6 +4,7 @@ from deepface import DeepFace
 import cv2
 import threading
 import time
+from collections import Counter
 
 app = Flask(__name__)
 CORS(app)
@@ -11,23 +12,98 @@ CORS(app)
 # buka webcam
 cap = cv2.VideoCapture(0)
 
-current_emotion = "detecting..."
 current_frame = None
 
+# hasil terakhir
+last_result = {
+    "emotion": "Belum ada deteksi",
+    "music": "",
+    "advice": ""
+}
+
+# rekomendasi spotify + saran
+recommendations = {
+    "happy": {
+        "music": "https://open.spotify.com/playlist/37i9dQZF1DXdPec7aLTmlC",
+        "advice": "Pertahankan mood positif dan lakukan aktivitas yang kamu suka"
+    },
+
+    "sad": {
+        "music": "https://open.spotify.com/playlist/0mcoURH64QKzzuAf3Wmwva?si=d8b5b80b9ea74444",
+        "advice": "Coba istirahat sejenak dan dengarkan musik yang menenangkan"
+    },
+
+    "angry": {
+        "music": "https://open.spotify.com/playlist/37i9dQZF1DX3rxVfibe1L0",
+        "advice": "Tarik napas perlahan dan coba relaksasi beberapa menit"
+    },
+
+    "fear": {
+        "music": "https://open.spotify.com/playlist/37i9dQZF1DWU0ScTcjJBdj",
+        "advice": "Tenangkan diri dan fokus pada hal-hal positif"
+    },
+
+    "surprise": {
+        "music": "https://open.spotify.com/playlist/37i9dQZF1DX4WYpdgoIcn6",
+        "advice": "Nikmati momen dan tetap berpikir positif"
+    },
+
+    "neutral": {
+        "music": "https://open.spotify.com/playlist/37i9dQZF1DX4sWSpwq3LiO",
+        "advice": "Coba aktivitas ringan untuk menjaga mood tetap stabil"
+    },
+
+    "disgust": {
+        "music": "https://open.spotify.com/playlist/37i9dQZF1DX889U0CL85jj",
+        "advice": "Alihkan fokus ke hal yang membuat nyaman"
+    }
+}
+
+
+# webcam realtime
 def webcam_loop():
+
     global current_frame
 
     while True:
+
         success, frame = cap.read()
 
         if success:
             current_frame = frame.copy()
 
-def emotion_loop():
-    global current_emotion, current_frame
 
-    while True:
+# thread webcam
+threading.Thread(
+    target=webcam_loop,
+    daemon=True
+).start()
+
+
+@app.route('/')
+def home():
+
+    return jsonify({
+        "status": "running"
+    })
+
+
+# scan emosi selama 3 detik
+@app.route('/scan_emotion')
+def scan_emotion():
+
+    global current_frame, last_result
+
+    emotion_list = []
+
+    start_time = time.time()
+
+    print("\n===== START SCAN =====")
+
+    while time.time() - start_time < 3:
+
         try:
+
             if current_frame is None:
                 continue
 
@@ -37,56 +113,65 @@ def emotion_loop():
                 enforce_detection=False,
                 detector_backend='opencv'
             )
-            current_emotion = result[0]['dominant_emotion']
-            print("Emotion:", current_emotion)
+
+            emotion = result[0]['dominant_emotion']
+
+            # tampil realtime di terminal
+            print("Emotion Detected:", emotion)
+
+            emotion_list.append(emotion)
+
+            time.sleep(0.2)
 
         except Exception as e:
-            print(e)
+            print("ERROR:", e)
 
-        # delay x detik
-        time.sleep(0.1)
+    # ambil emosi paling sering muncul
+    if len(emotion_list) > 0:
 
+        final_emotion = Counter(
+            emotion_list
+        ).most_common(1)[0][0]
 
-# jalankan thread webcam
-threading.Thread(
-    target=webcam_loop,
-    daemon=True
-).start()
+    else:
+        final_emotion = "neutral"
 
-# jalankan thread AI
-threading.Thread(
-    target=emotion_loop,
-    daemon=True
-).start()
+    recommendation = recommendations.get(
+        final_emotion,
+        recommendations['neutral']
+    )
 
-# ROUTES
-@app.route('/')
-def home():
+    last_result = {
+        "emotion": final_emotion,
+        "music": recommendation['music'],
+        "advice": recommendation['advice']
+    }
 
-    return jsonify({
-        "status": "running"
-    })
+    # hasil final terminal
+    print("\n===== FINAL RESULT =====")
+    print("FINAL EMOTION:", final_emotion)
+    print("SPOTIFY:", recommendation['music'])
+    print("ADVICE:", recommendation['advice'])
+    print("========================\n")
 
-
-@app.route('/emotion')
-def emotion():
-
-    return jsonify({
-        "emotion": current_emotion
-    })
+    return jsonify(last_result)
 
 
+# streaming webcam
 @app.route('/video_feed')
 def video_feed():
 
     def generate():
+
         global current_frame
 
         while True:
+
             if current_frame is None:
                 continue
 
             ret, buffer = cv2.imencode('.jpg', current_frame)
+
             frame = buffer.tobytes()
 
             yield (
@@ -96,7 +181,6 @@ def video_feed():
                 b'\r\n'
             )
 
-            # 0.03 = 30 fps
             time.sleep(0.03)
 
     return Response(
@@ -108,7 +192,10 @@ def video_feed():
 if __name__ == '__main__':
 
     try:
-        app.run(debug=False, threaded=True)
+        app.run(
+            debug=False,
+            threaded=True
+        )
 
     finally:
         cap.release()

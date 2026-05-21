@@ -1,58 +1,296 @@
 <!DOCTYPE html>
-<html lang="id" xmlns:th="http://www.thymeleaf.org">
+<html lang="id">
+
 <head>
+
     <meta charset="UTF-8">
-    <title>Emotion Music App</title>
+
+    <title>
+        Emotion Detection Music Recommendation
+    </title>
 
     <style>
+
         body {
+
             font-family: Arial, sans-serif;
-            font-size: 20px;
-            background: #1e1e1e;
+            background: #0f0f0f;
             color: white;
             text-align: center;
-            margin-top: 80px;
+            padding: 40px;
         }
+
+        h1 {
+
+            margin-bottom: 20px;
+        }
+
+        img {
+
+            width: 520px;
+            border-radius: 20px;
+            border: 4px solid #00ff99;
+        }
+
+        .btn-scan {
+
+            margin-top: 25px;
+            padding: 15px 35px;
+            border: none;
+            border-radius: 12px;
+            background: #00ff99;
+            color: black;
+            font-size: 22px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        .btn-scan:hover {
+
+            transform: scale(1.05);
+        }
+
+        .btn-scan:disabled {
+
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
         .emotion-box {
-            font-size: 40px;
-            color: #00ff99;
+
             margin-top: 30px;
+            font-size: 38px;
+            color: #00ff99;
         }
+
+        .loading {
+
+            margin-top: 15px;
+            font-size: 22px;
+        }
+
+        .suggestion-box {
+
+            margin-top: 40px;
+            background: #1f1f1f;
+            padding: 30px;
+            border-radius: 18px;
+            width: 65%;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .suggestion-box h2 {
+
+            margin-top: 10px;
+        }
+
+        .suggestion-text {
+
+            font-size: 20px;
+            margin-top: 10px;
+        }
+
+        .spotify-link {
+
+            display: inline-block;
+            margin-top: 15px;
+            padding: 12px 24px;
+            background: #00ff99;
+            color: black;
+            text-decoration: none;
+            border-radius: 10px;
+            font-weight: bold;
+        }
+
     </style>
+
 </head>
+
 <body>
 
-    <h1>Emotion Detection</h1>
+    <h1>
+        Emotion Detection Music Recommendation
+    </h1>
 
-    <!-- Menampilkan video feed dari Flask -->
-    <img src="http://localhost:5000/video_feed">
+    <!-- webcam -->
+    <img
+        src="http://localhost:5000/video_feed"
+    >
 
-    <!-- deteksi emosi real-time -->
+    <br>
+
+    <!-- tombol -->
+    <button
+        id="scanBtn"
+        class="btn-scan"
+        onclick="scanEmotion()"
+    >
+
+        Scan Emotion
+
+    </button>
+
+    <!-- emotion -->
     <div class="emotion-box">
+
         Emotion:
-        <span id="emotion">detecting...</span>
+        <span id="emotion">
+            Belum scan
+        </span>
+
     </div>
 
+    <!-- loading -->
+    <div
+        id="loading"
+        class="loading"
+    ></div>
+
+    <!-- suggestion -->
+    <div class="suggestion-box">
+
+        <h2>Saran Aktivitas</h2>
+
+        <p
+            id="advice"
+            class="suggestion-text"
+        >
+
+            Tekan tombol scan untuk mulai
+            mendeteksi emosi
+
+        </p>
+
+        <h2>Playlist Spotify</h2>
+
+        <a
+            id="music"
+            class="spotify-link"
+            href="#"
+            target="_blank"
+        >
+
+            Belum ada rekomendasi
+
+        </a>
+
+    </div>
+
+
     <script>
-        async function updateEmotion() {
+
+        async function scanEmotion() {
+
+            const btn =
+                document.getElementById(
+                    "scanBtn"
+                );
+
+            btn.disabled = true;
+
+            // reset tampilan
+            document.getElementById(
+                "emotion"
+            ).innerText =
+                "Scanning...";
+
+            document.getElementById(
+                "advice"
+            ).innerText =
+                "Sedang menganalisa emosi...";
+
+            document.getElementById(
+                "music"
+            ).innerText =
+                "Menunggu hasil scan...";
+
+            // countdown
+            let countdown = 3;
+
+            document.getElementById(
+                "loading"
+            ).innerText =
+                `Scanning emotion... ${countdown}`;
+
+            const timer = setInterval(() => {
+
+                countdown--;
+
+                if (countdown > 0) {
+
+                    document.getElementById(
+                        "loading"
+                    ).innerText =
+                        `Scanning emotion... ${countdown}`;
+
+                }
+
+            }, 1000);
 
             try {
-                const response = await fetch('http://localhost:5000/emotion');
 
-                const data = await response.json();
+                const response =
+                    await fetch(
+                        "http://localhost:5000/scan_emotion"
+                    );
 
-                document.getElementById('emotion').innerText = data.emotion;
+                const data =
+                    await response.json();
+
+                clearInterval(timer);
+
+                // hasil emotion
+                document.getElementById(
+                    "emotion"
+                ).innerText =
+                    data.emotion;
+
+                // saran
+                document.getElementById(
+                    "advice"
+                ).innerText =
+                    data.advice;
+
+                // spotify
+                const musicLink =
+                    document.getElementById(
+                        "music"
+                    );
+
+                musicLink.href =
+                    data.music;
+
+                musicLink.innerText =
+                    "Buka Playlist Spotify";
+
+                // selesai
+                document.getElementById(
+                    "loading"
+                ).innerText =
+                    "Scan selesai";
+
             }
 
             catch(error) {
+
+                clearInterval(timer);
+
                 console.error(error);
+
+                document.getElementById(
+                    "loading"
+                ).innerText =
+                    "Terjadi error";
+
             }
+
+            btn.disabled = false;
         }
 
-        // updateEmotion(ms), 1000 = 1 detik
-        setInterval(updateEmotion, 100);
-        updateEmotion();
     </script>
 
 </body>
+
 </html>
